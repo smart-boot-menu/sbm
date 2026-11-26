@@ -11,6 +11,10 @@
 
 ---
 
+## Immediate milestone — SBM 0.0.1 offline preview
+
+Qualify one removable image on x86_64 OVMF and AArch64 AAVMF through the real menu, Core GUI, GParted, and return to the menu. See the [integration plan](INTEGRATION_PLAN.md) and [release gates](RELEASE_GATES.md).
+
 ## Milestone: SBM 0.1 — End-to-End Architectural Proof of Concept (Priority 1)
 
 **Goal:** Demonstrate the complete two-tier architecture end-to-end inside automated QEMU VMs and from removable USB media.

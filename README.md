@@ -29,6 +29,13 @@ To keep documentation clean and prevent copy-paste drift (modeled after `0SFS`'s
 - [agents/README.md](agents/README.md) — Autonomous engineering agent prompts (`01-uefi.md` through `09-website.md`).
 - [HANDOFF.md](HANDOFF.md) — Agent 0 initialization and handoff report.
 
+## SBM 0.0.1 integration
+
+- [Integration audit](INTEGRATION_AUDIT.md)
+- [Integration plan, dependency matrix, and owner assignments](INTEGRATION_PLAN.md)
+- [Release gates](RELEASE_GATES.md)
+- [Agent 10 handoff](INTEGRATION_HANDOFF.md)
+
 ## License
 
 Original Smart Boot Menu code and documentation are dual-licensed under [MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE), subject to third-party licensing requirements for external bundled utilities.
