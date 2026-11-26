@@ -1,0 +1,22 @@
+# Smart Boot Menu — Recommended Technology Stack
+
+**Baseline:** November 2026 (Primary-source verified versions; see `research/` and `docs/architecture-decisions/` for full trade-off analyses.)
+
+| Layer | Concrete Recommendation | Verified Baseline (Nov 2026) | License | ADR |
+|---|---|---|---|---|
+| **Core Language** | **Rust** (Edition 2024) | `rustc 1.100.0` | `MIT OR Apache-2.0` | All |
+| **Shared Contracts (`sbm-common`)** | `sbm-types` (`#![no_std]`+`alloc`), `sbm-protocol` (`#![no_std]`+`alloc`), `sbm-schema` (`std` + `schemars`) | `serde`, `serde_json`, `schemars` | `MIT OR Apache-2.0` | Specs 01–07 |
+| **UEFI Runtime (`sbm-uefi`)** | `uefi-rs` (`uefi` + `uefi-raw`) | `uefi 0.41.0` / `uefi-raw 0.17.0` | `MPL-2.0` | [ADR-004](../docs/architecture-decisions/ADR-004-uefi-rust-stack-and-esp-persistence.md) |
+| **UEFI Graphics** | Custom `#![no_std]` double-buffered GOP 2D renderer + `ab_glyph`/bitmap fonts | Pure Rust `no_std` | `MIT OR Apache-2.0` | [ADR-002](../docs/architecture-decisions/ADR-002-graphics-and-gui-separation.md) |
+| **UEFI Networking** | `smoltcp` + TLS 1.3 (`embedded-tls`/`rustls` `no_std`) over UEFI SNP + optional `EFI_HTTP_PROTOCOL` | Bounded ≤ 4 s timeout | `0BSD` / `MIT OR Apache-2.0` | [ADR-004](../docs/architecture-decisions/ADR-004-uefi-rust-stack-and-esp-persistence.md) |
+| **UEFI Secure Boot (Prod)** | `rhboot/shim` + SBAT `.sbat` section + NX compat + Microsoft UEFI CA 2023 / custom PK/KEK/db | `shim 16.1` | `BSD-2-Clause` | Threat Model |
+| **Apple Silicon Bootstrap (`sbm-as`)** | `AsahiLinux/m1n1` + `AsahiLinux/u-boot` (`asahi-releng`) -> shared `sbm-uefi` `aarch64` | U-Boot `v2026.07` Asahi base | `MIT` / `GPL-2.0-or-later` | [ADR-005](../docs/architecture-decisions/ADR-005-apple-silicon-m1n1-uboot-strategy.md) |
+| **Minimal Linux Builder (`sbm-core`)** | **`mkosi`** producing signed UKI + `dm-verity` EROFS (`zstd`) + `systemd-sysext` | `mkosi v27.1` (Sep 2026) | `LGPL-2.1-or-later` | [ADR-003](../docs/architecture-decisions/ADR-003-sbm-core-minimal-linux-and-apple-silicon-asahi.md) |
+| **`sbm-core` Base (x86-64 / ARM64 PC)** | **Fedora Minimal** (~420–650 MB compressed) | Current Fedora + mainline kernel | Distro RPMs | [ADR-003](../docs/architecture-decisions/ADR-003-sbm-core-minimal-linux-and-apple-silicon-asahi.md) |
+| **`sbm-core` Base (Apple Silicon)** | **Fedora Asahi Minimal** (`kernel-16k` `linux-asahi`, ~500–850 MB compressed) | Fedora Asahi Remix repos | `GPL-2.0-only` / `MIT` | [ADR-003](../docs/architecture-decisions/ADR-003-sbm-core-minimal-linux-and-apple-silicon-asahi.md) |
+| **`sbm-core` Graphics & Desktop** | Linux DRM/KMS + Mesa (`llvmpipe` fallback) + **`labwc`** (Wayland + XWayland) + **`Iced`** UI + **`wayvnc`** | `GParted 1.8.1` via XWayland | `MIT` / `GPL-2.0` (bundled) | [ADR-002](../docs/architecture-decisions/ADR-002-graphics-and-gui-separation.md) |
+| **Storage & OS Install Utilities** | Rust safety planner wrapping `util-linux`, `sgdisk`, `e2fsprogs 1.47.4`, `ntfs-3g`, `btrfs-progs`, `cryptsetup 2.8.9` (LUKS2+BitLocker), `partclone`, `ddrescue`, `testdisk 7.2`, `wimlib 1.14.5`, `bootc`, `gparted 1.8.1` | Wrapped via `execve` (no shell) | Isolated CLI processes | [ADR-006](../docs/architecture-decisions/ADR-006-storage-safety-and-tool-wrapping.md) |
+| **Remote Server (`sbm-server`)** | **`axum 0.8.9`** + **`tokio 1.54.1`** + **`sqlx 0.9.1`** (SQLite WAL default + PostgreSQL) + **`rustls`** + **`rcgen 0.14.10`** + **`webauthn-rs 0.6.2`** | Nov 2026 crates.io | `MIT OR Apache-2.0` | [ADR-007](../docs/architecture-decisions/ADR-007-remote-management-server-and-security-protocol.md) |
+| **Web Dashboard** | **`SvelteKit 3.4.0`** (embedded static assets) + **`@novnc/novnc`** (`MPL-2.0`) + **`xterm.js`** | Oct–Nov 2026 | `MIT` / `MPL-2.0` | [ADR-007](../docs/architecture-decisions/ADR-007-remote-management-server-and-security-protocol.md) |
+| **Supply Chain & Updates** | **TUF `v1.0.33`** (`tough v0.24.0`), Ed25519 (`ed25519-dalek`), Sigstore/Cosign, SLSA, `systemd-sysupdate` | Active 2026 | `MIT OR Apache-2.0` | Threat Model |
+| **Virtualization & Testing (`sbm-lab`)** | **QEMU** + EDK2 **`edk2-stable202611`** (OVMF/AAVMF) + U-Boot **`v2026.10`** (`qemu_arm64`) + **`swtpm v0.10.2`** + `proptest` + `cargo-fuzz` | Nov 2026 | `GPL-2.0` / `BSD` (test env) | [ADR-008](../docs/architecture-decisions/ADR-008-testing-virtualization-and-benchmark-methodology.md) |

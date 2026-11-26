@@ -1,0 +1,20 @@
+# Smart Boot Menu — Repository Map & Boundaries
+
+All 14 repositories under [`https://github.com/smart-boot-menu`](https://github.com/smart-boot-menu) and their strict single-source-of-truth boundaries (including dedicated `docs` and `research` repositories modeled after `0SFS`):
+
+| Repository | Local Path | Canonical Owner Of | Must NOT Duplicate |
+|---|---|---|---|
+| **`.github`** | `~/gh/smart-boot-menu/.github` | Org profile, shared universal `AGENTS.md` + `agent-reference.md`, community health policies, issue/PR templates | Technical specs, ADRs, Rust code |
+| **`docs`** | `~/gh/smart-boot-menu/docs` | Normative specifications (`specifications/`), ADRs (`architecture-decisions/`), threat model, hardware profiles, testing methodology, Mermaid diagrams, proposals | Raw ecosystem research dumps (`research`), executable Rust types/schemas (`sbm-common`) |
+| **`research`** | `~/gh/smart-boot-menu/research` | Primary-source ecosystem surveys, Apple Silicon / hardware deep dives, comparative technology evaluations, retained empirical benchmark/probe evidence | Normative specs/ADRs (`docs`) |
+| **`sbm`** | `~/gh/smart-boot-menu/sbm` | Executive vision, architecture summary, roadmap, repository map, release manifests, agent launch prompts (`agents/01..09.md`), handoff coordination | Duplicating full specs/research (link to `docs` & `research` instead) |
+| **`sbm-common`** | `~/gh/smart-boot-menu/sbm-common` | Shared Rust crates (`sbm-types`, `sbm-protocol` `#![no_std]`+`alloc`, `sbm-schema`), canonical JSON Schemas, golden protocol test vectors | Runtime UEFI/Linux/Server business logic |
+| **`sbm-uefi`** | `~/gh/smart-boot-menu/sbm-uefi` | Native Rust graphical UEFI boot manager (`x86_64-unknown-uefi`, `aarch64-unknown-uefi`), GOP UI, OS/BLS/UKI discovery, chainloading, bounded policy client | Linux storage/install logic, Apple `m1n1` setup |
+| **`sbm-as`** | `~/gh/smart-boot-menu/sbm-as` | Apple Silicon research integration, `m1n1` + `Asahi U-Boot` bootstrap packaging, Apple APFS/Preboot guardrails, external-boot adapters | Forking `sbm-uefi` (MUST consume standard `aarch64` `sbm-uefi` binary!) |
+| **`sbm-core`** | `~/gh/smart-boot-menu/sbm-core` | `mkosi` minimal Linux image builder (Fedora Minimal + Light Fedora Asahi Minimal), recovery GUI (`labwc`+`Iced`+GParted), storage/install/backup/diagnostics engine, `wayvnc`/PTY remote bridge | Installing SBM itself (`install`), hosting multi-device dashboard (`sbm-server`) |
+| **`install`** | `~/gh/smart-boot-menu/install` | Installing, updating, and uninstalling SBM itself; creating bootable SBM USB media; BitLocker & Apple pre-flight safety gates; coordinating `sbm-as` | Installing other OSes like Windows/Ubuntu/BSD (`sbm-core`) |
+| **`sbm-server`** | `~/gh/smart-boot-menu/sbm-server` | Optional self-hosted management server (`axum`/`sqlx`), SvelteKit web dashboard (`noVNC`/`xterm.js`), Passkeys/RBAC, device enrollment, Ed25519 command signing, audit log | Mandatory cloud dependency; protocol schema redefinition |
+| **`sbm-catalog`** | `~/gh/smart-boot-menu/sbm-catalog` | Declarative OS catalog entries, verified mirror metadata, hardware/platform compatibility tags, schema validation CI, TUF signing/publishing pipeline | Arbitrary executable install scripts; OS installer implementation (`sbm-core`) |
+| **`sbm-agent`** | `~/gh/smart-boot-menu/sbm-agent` | Optional guest OS background daemon (Linux/Windows/macOS): boot-success confirmation, health reporting, authorized remote reboot / one-shot handoff | Full bare-metal recovery or partitioning (`sbm-core`) |
+| **`sbm-lab`** | `~/gh/smart-boot-menu/sbm-lab` | QEMU + OVMF/AAVMF + U-Boot + `swtpm` virtual test harness, golden QCOW2 disk fixtures, end-to-end integration tests, benchmarks, fault injection | Production runtime code |
+| **`smart-boot-menu.github.io`** | `~/gh/smart-boot-menu/smart-boot-menu.github.io` | Official public website, user documentation portal, and verified download index | Canonical technical specs (pull/link from `docs` & `sbm`) |
