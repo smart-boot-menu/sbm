@@ -1,51 +1,101 @@
-# SBM 0.0.1 release gates
+# Smart Boot Menu — Release Gates (SBM 0.0.1, 0.0.2 & 0.0.3)
 
-**Status:** **OPEN — SBM 0.0.1 IS UNQUALIFIED (Wave 2 Audit, 2026-11-26).** Do not declare the release complete or tag 0.0.1 until every mandatory gate below passes with archived evidence on the exact same raw image SHA-256 across both architectures.
+**Current Status (2026-11-26):**
+- **SBM 0.0.1 (`aarch64`):** **OPEN — UNQUALIFIED.** Core graphical recovery loop passed locally in Agent 13's unmerged runs (9/9 gates), but mandatory UEFI latency (`< 250 ms`), Spec 03 volatile EFI vars, per-arch manifest/reproducibility, and merged green CI gates remain open.
+- **SBM 0.0.1 (`x86_64`):** **OPEN — UNQUALIFIED.** Same remaining UEFI/manifest/merge gates plus native `x86_64` per-arch artifact assembly and CI verification.
+- **Dual-architecture combined media (`dualarch`):** **OPTIONAL EXPERIMENTAL PROFILE** — preserved for specialized operator use; **NOT** a recommended distribution and **NOT** a mandatory release gate for 0.0.1 or later milestones (per [ADR-009](../docs/architecture-decisions/ADR-009-dual-architecture-offline-preview-media.md)).
+- **SBM 0.0.2 & SBM 0.0.3:** **PLANNED / OPEN.**
 
-## 1. Current gate scorecard (Wave 2)
+> **Honest Qualification Rule:** Do NOT declare any release or architecture qualified until every mandatory Tier 1 and Tier 2 gate below passes from **merged, immutable committed source revisions** with archived machine-readable evidence and green hosted CI. **Tier 1 simulated previews (Track A) NEVER substitute for Tier 2 disposable VM qualification.**
 
-| Gate | `aarch64` (AAVMF) | `x86_64` (OVMF) | Blocking evidence gap |
-|---|---|---|---|
-| **0. Immutable reproducible build** | FAIL | FAIL | Candidate Core images built from `0a49e45` + uncommitted edits (predating `c7e9439`); `release-manifest.json` has `artifacts: []` and wrong filename; `build-receipt.json` from `3037bbc`. |
-| **1. Real UEFI menu & startup latency** | PARTIAL (1,748 ms) | FAIL (16.96–31.69 s; splash-only PNG) | 117×–211× regression from eager dual-arch hashing + $O(N^2)$ FAT32 reopen/seek. Must restore `< 250 ms` HVF while keeping fail-closed launch-time streaming SHA-256. |
-| **2. Discovered targets** | PARTIAL (`SBM Core Slot A` only) | UNVERIFIED (no decoy ESP fixture) | Must display both discovered decoy/OS fixture target and **Manage Computer** control on the picker. |
-| **3. Manage Computer & Spec 03 handoff** | PARTIAL (legacy cmdline only) | PARTIAL (legacy cmdline only) | Must verify native UKI digest at launch (fail-closed), flush UUIDv4 `last_attempt.json` & `current.json` on boot ESP only, publish all 5 volatile EFI vars, and launch without external load options. |
-| **4. Real Linux Core (dm-verity EROFS)** | PASS (kernel/verity/cored) | PARTIAL (serial reached login; `x86_64-run.json` 0 B) | Missing BLI PARTUUID ESP validation, `resolve_disk()` RO protection (`unchanged`), and clean `x86_64` JSON report. |
-| **5. Management UI (`sbm-ui`)** | **FAIL** (`status=217/USER`) | **FAIL** (`status=217/USER`) | `labwc` never started due to missing `sbm` GID 1000, `/boot` vs `/efi` mount, `/dev/kmsg` EACCES, and missing software-renderer auto-selection. Zero UI screenshots or `boot-success.json` confirmations exist. |
-| **6. GParted & virtual disks** | **FAIL** (not reached) | **FAIL** (not reached) | Never executed; requires `SBM_UI_READY`, `labwc_environ()` fix, and QMP frames showing both 1 GiB and 2 GiB virtual disks in GParted. |
-| **7. Return to menu & confirmation** | **FAIL** (not reached) | **FAIL** (not reached) | `sbm-lab` passes `-no-reboot`; `sbm-cored` triggers double reboot via `requested-command.json`; `sbm-uefi` still allows `"local"` wildcard confirmation. |
-| **8. Offline operation** | PASS (no NIC attached) | PASS (no NIC attached) | Must be re-verified across the complete Gates 1–7 loop. |
-| **9. CI, integrity & host resource hygiene** | **FAIL** (`sbm-uefi` & `sbm-lab` CI red) | **FAIL** (`sbm-uefi` & `sbm-lab` CI red) | `sbm-uefi` `cargo fmt` fail (`45900855497`); `sbm-lab` `smoke`/`product`/`secure` fail (`45900849263`); `sbm-lab#5` resource-manager defects break sibling VM launchers. |
+---
 
-## 2. Inputs and execution rules
+## 1. Three Mandatory Testing Tiers (Applies to All Releases)
 
-- **Immutable source provenance:** Build `sbm-uefi`, `sbm-core` (both arches), and the dual-arch image from clean, committed, tagged/recorded revisions pinned to unified `sbm-common` `b3c77141504be71bfad6602d8df628f84f704c7b` with zero uncommitted local edits. Populate `ReleaseManifest` 1.1 `artifacts` (both menus + both UKIs) and `media` (`.raw` + `.raw.zst`) in `release-manifest.v1.json`, verify `sbm-install media verify`, prove byte-identical assembly via `check-reproducible.sh` on `media/0.0.1.lock.toml`, and archive `build-receipt.json` with exact builder package lists and commands.
-- **VM execution topology:** Boot a disposable QCOW2 overlay of the exact same unchanged raw image as removable USB storage on `x86_64` `q35`/OVMF and `AArch64` `virt`/AAVMF with graphical output (`virtio-vga` / `virtio-gpu-pci`), QMP, serial logging, no virtual NIC, no `-no-reboot`, and no synthetic probe or direct kernel boot. Use fresh copies of OVMF/AAVMF variable templates and attach a decoy ESP (enumerated before the boot ESP) plus two virtual disks of distinct known capacities (1 GiB and 2 GiB).
-- **Host resource safety:** On the 16 GiB macOS host, all VM launchers must reserve through the fixed shared host resource manager (`sbm-lab#5`), run heavy/graphical guests sequentially, and never pass physical host disks (`/dev/*`) to QEMU or the installer.
-- **Required automated commands:** `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --locked --workspace` in every repo, plus `sbm-lab test --tier smoke`, `sbm-lab test --tier product`, `sbm-lab test --tier secure`, and `sbm-lab test --tier integration --image PATH` (`sbm-lab#2`). Missing required assertions or skipped Core scenarios fail qualification.
+- **Distribution classification (ADR-009 amendment, pending Agent 11 review):** Architecture-specific distributions (`x86_64` and generic `aarch64`) are **recommended** for users and CI; the universal dual-architecture image (`sbm-0.0.1-uefi-dualarch.raw[.zst]`) is preserved as **experimental and optional**; Apple Silicon (`sbm-as`) is a separate experimental track; local development builds MUST default to native architecture only.
+Per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md) and [ADR-011](../docs/architecture-decisions/ADR-011-native-preview-internal-install-and-media-creator.md), every release gate explicitly states its testing tier:
 
-## 3. Mandatory positive scenario (Gates 1–9)
+- **Tier 1 (Simulated / Native Host):** Unit tests, property tests, regular-file `sbm-plan`/`sbm-exec` simulations, and Track A native interactive previews (`sbm-gfx`/`sbm-boot` + Iced `sbm-ui`). Fast PR/dev feedback; never touches block devices or counts as firmware/kernel qualification.
+- **Tier 2 (Disposable VM Disk — `sbm-lab` / Linux CI):** Real UEFI firmware (OVMF/AAVMF), real Linux kernel + CLI storage tools, and disposable copy-on-write QCOW2 disk/NVRAM overlays. **Mandatory automated qualification authority for 0.0.1, 0.0.2, and 0.0.3.**
+- **Tier 3 (Explicitly Authorized Physical Hardware):** Strictly opt-in manual validation on dedicated non-workstation hardware (e.g., `EXP-HW-HP01`). Never automated on developer workstations; required only before marking a physical device *Verified* on the public compatibility matrix.
 
-| Gate | Automated acceptance | Required evidence |
+---
+
+## 2. SBM 0.0.1 Gates — Independently Qualified Architecture-Specific Recovery Media
+
+`x86_64` (`sbm-0.0.1-uefi-x86_64.raw[.zst]`) and `aarch64` (`sbm-0.0.1-uefi-aarch64.raw[.zst]`) are qualified **independently**. Each architecture has its own gate pass/fail status and can be tagged/published independently once all mandatory gates pass for that architecture.
+
+### 2.1 Current SBM 0.0.1 Scorecard (2026-11-26)
+
+| Gate | Tier | `aarch64` (AAVMF) | `x86_64` (OVMF) | Current Evidence & Blocking Gap |
+|---|---|---|---|---|
+| **0. Immutable per-arch reproducible build** | Tier 1/2 | **OPEN** | **OPEN** | Agent 13 proved reproducible *dual-arch* build locally (`5031613`, unmerged), but `install` still needs per-arch primary media profiles (`sbm-0.0.1-uefi-<arch>.raw[.zst]`), populated `ReleaseManifest.artifacts`, `release-manifest.v1.json`, and merged immutable revisions across `sbm-uefi`/`sbm-core`/`install`. |
+| **1. Real UEFI menu & startup latency** | Tier 2 | **FAIL** (1,083 ms HVF) | **FAIL** (16.0 s TCG) | `sbm-uefi` (`653012f`) still hashes UKI at discovery time. Must implement lightweight startup check + launch-time single-open streaming SHA-256 (`sha2` `opt-level = 3`) so `menu_ready < 250 ms` on `aarch64` HVF (and native KVM on `x86_64` CI). |
+| **2. Discovered targets** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13's local `sbm-lab` integration run showed both decoy OS fixture and recovery entry; needs merged `sbm-lab#2` + **Manage Computer** label per Spec 03. |
+| **3. Manage Computer & Spec 03 handoff** | Tier 2 | **PARTIAL** | **PARTIAL** | `sbm-uefi` still passes legacy cmdline load options instead of publishing all 5 Spec 03 volatile EFI variables with empty load options, UUIDv4 `attempt_id`, and fail-closed launch-time streaming SHA-256. |
+| **4. Real Linux Core (`dm-verity` EROFS)** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 (`sbm-core` `5031613`, unmerged) fixed `/efi`, `resolve_disk()`, ESP protection, and strict BLI/EFI-var handoff. Needs merge with Agent 16's `098921f` and clean CI build. |
+| **5. Management UI (`sbm-ui`)** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 fixed `systemd-pam`, `/run/sbm`, `sbm-ui` `tiny-skia` fallback, and `SBM_UI_READY` + `boot-success.json` (`aarch64` HVF, `x86_64` TCG, `ramfb` software). Needs merge & re-run on final per-arch media. |
+| **6. GParted & virtual disks** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 fixed XWayland `xhost` refresh and captured QMP frames showing 1 GiB + 2 GiB fixture disks in GParted. Needs merge & re-run on final per-arch media. |
+| **7. Return to menu & confirmation** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 verified clean QMP `RESET`, menu reboot, `status=confirmed`, `consecutive_failures=0`, `boot-success.json` consumed. Needs `sbm-uefi#1` strict `attempt_id` check (no `"local"` wildcard) and merge. |
+| **8. Offline operation** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Zero NIC attached across full loop; re-verify on final merged per-arch images. |
+| **9. CI, integrity & host resource hygiene** | Tier 1/2 | **OPEN** | **OPEN** | `sbm-lab#5` shared resource manager fixes, `sbm-core` merge (`5031613` + `098921f`), `sbm-lab` `integration.rs` push, and green hosted CI across `sbm-common`, `docs`, `sbm-uefi`, `sbm-core`, `sbm-lab`, and `install` still pending. |
+| **Exp. Dual-arch combined media** *(Optional / Non-Gating)* | Tier 2 | *Optional* | *Optional* | Preserved as an optional experimental profile in `install`; passing or skipping this profile does NOT block 0.0.1 qualification of `x86_64` or `aarch64`. |
+
+### 2.2 Mandatory Positive Acceptance Per Architecture (Gates 0–9)
+
+1. **Gate 0 — Immutable Per-Arch Provenance:** Built from clean committed revisions pinned to unified `sbm-common` (`b3c77141` or newer merged `main`), emitting `sbm-0.0.1-uefi-<arch>.raw`, `.raw.zst`, `.sha256`, populated `release-manifest.v1.json` (`artifacts` + `media` per Spec 07), and `build-receipt.json`, verified byte-identical via `check-reproducible.sh` and `sbm-install media verify`.
+2. **Gate 1 — Real UEFI Menu & Startup Speed:** Native fallback binary boots on disposable QCOW2 overlay; `menu_ready < 250 ms` on `aarch64` HVF (and native KVM on `x86_64` CI); QMP frame proves real graphical picker (never splash-only).
+3. **Gate 2 — Discovered Targets:** Decoy/fixture OS target AND **Manage Computer** both appear in discovery and on the picker.
+4. **Gate 3 — Launch-Time Verification & Spec 03 Handoff:** Activating **Manage Computer** streams the native UKI once from a single file handle (`bytes == size`), verifies SHA-256 fail-closed, flushes UUIDv4 `last_attempt.json` & `current.json` on boot ESP only, publishes all 5 Spec 03 volatile EFI vars, and calls `LoadImage`/`StartImage` via exact device path with empty load options.
+5. **Gate 4 — Real Linux Core:** Resolves boot ESP via BLI `LoaderDevicePartUUID` (rejecting decoy ESP enumerated first), verifies all 5 EFI vars + `current.json` SHA-256, mounts native `dm-verity` EROFS root, and protects non-ESP partitions on backing recovery disk.
+6. **Gate 5 — Live Management UI:** Real `labwc` + Iced `sbm-ui` renders live daemon-backed disk/handoff info (including software fallback when DRM render node is absent or `wgpu` fails) and writes fsynced `boot-success.json` (`sbm-core-uki`, exact `attempt_id`).
+7. **Gate 6 — GParted & Virtual Disks:** Real GParted launches via XWayland and its device selector displays both 1 GiB and 2 GiB virtual fixture disks without mutating them.
+8. **Gate 7 — Return to Menu & Confirmation:** Core's Reboot control performs a plain guest reboot (no `requested-command.json`), firmware boots the same menu, and UEFI confirms the exact prior attempt (`status: confirmed`, `consecutive_failures: 0`, deletes `boot-success.json`).
+9. **Gate 8 — Offline:** Complete Gates 1–7 loop finishes with zero virtual NIC, account, or `sbm-server`.
+10. **Gate 9 — CI & Integrity:** All hosted CI jobs pass across all participating repos; original `.raw` image bytes, firmware templates, fixture bases, and GPT metadata remain byte-identical before and after runs.
+
+### 2.3 Mandatory Negative Acceptance Per Architecture (Tier 2)
+
+1. **Tampered UKI:** 1-byte flip in native UKI -> UEFI refuses launch fail-closed before `StartImage` and returns to usable picker.
+2. **Corrupted `dm-verity`:** Corrupted verity hash/data block -> Linux never reaches `SBM_UI_READY` or writes `boot-success.json`.
+3. **Invalid Handoff / Stale Confirmation:** Mismatched `SbmHandoffSha256` -> Core declines `boot-success.json`; stale `attempt_id` or `"local"` -> UEFI refuses confirmation.
+4. **Decoy ESP Priority:** Decoy ESP enumerated before boot ESP -> zero mutations on decoy ESP.
+
+---
+
+## 3. SBM 0.0.2 Gates — Persistent Internal SSD Installation, Uninstall & Recovery
+
+Qualified per architecture (`x86_64`, `aarch64`) against **Spec 04 §11a** and **ADR-011**.
+
+| Gate | Tier | Mandatory Acceptance Criteria |
 |---|---|---|
-| 1. Real UEFI menu & startup speed | Firmware loads the native fallback binary; build ID and `menu-ready` appear without eager full-file or foreign-arch hashing (`menu_ready < 250 ms` on `aarch64` HVF). | Firmware path, build ID, `first_frame` / `discovery_done` / `menu_ready` timestamps in serial, and QMP frame of the real graphical picker. |
-| 2. Discovered targets | Expected decoy/fixture OS label and **Manage Computer** control both appear in discovery and on the picker. | Discovery output and QMP frame showing both the fixture target and **Manage Computer**. |
-| 3. Manage Computer & launch-time verification | QMP activates **Manage Computer**; UEFI performs single-open sequential streaming SHA-256 verification of the native UKI, persists and flushes a fresh UUIDv4 `started` attempt and `current.json` on the boot ESP only, publishes all 5 Spec 03 volatile EFI vars, and invokes `LoadImage`/`StartImage` via exact device path with no external load options. | Input trace, verification timing & result, UKI path, attempt ID, and volatile var publication log. |
-| 4. Real Linux Core | Core resolves the boot ESP via BLI `LoaderDevicePartUUID` (rejecting decoy ESP), validates all 5 EFI vars and `current.json` SHA-256, activates the native dm-verity EROFS pair from the build receipt, and protects the backing recovery disk (exempting the ESP). | Effective cmdline, mapper/root source, partition UUIDs, `sbm-protect` status, and handoff verification result. |
-| 5. Management UI | Real `labwc` + Iced `sbm-ui` window renders live daemon-backed disk/handoff data; `sbm-cored` writes and fsyncs matching `boot-success.json` (`sbm-core-uki`, exact `attempt_id`) on the boot ESP. | Post-`SBM_UI_READY` QMP frame showing populated UI, readiness events, and flushed `boot-success.json` contents. |
-| 6. GParted and disks | QMP activates the GParted button; real GParted opens and its device selector displays both expected 1 GiB and 2 GiB virtual fixture disks without executing any Apply operation. | GParted window and opened device-selector QMP frames, machine-checked disk labels/sizes, and input trace. |
-| 7. Return to menu & confirmation | QMP activates Core's Reboot control (plain guest reboot, no `requested-command.json`); QEMU stays alive, reports guest reset, boots the same UEFI menu, and confirms the prior attempt (`status: confirmed`, `consecutive_failures: 0`, deletes `boot-success.json`). | QMP reset event, second `menu-ready` event, post-reboot QMP frame, and final `last_attempt.json` state. |
-| 8. Offline | Complete sequence finishes with no virtual NIC, account, or `sbm-server`. | Resolved QEMU argv and completed structured assertions for every stage. |
-| 9. CI & integrity | All hosted CI jobs pass across `sbm-common`, `docs`, `sbm-uefi`, `sbm-core`, `sbm-lab` (`check`, `smoke`, `product`, `secure`), and `install`, plus both full-system integration lanes. Original `.raw` image bytes, firmware templates, fixture bases, and GPT metadata remain unchanged. | Hosted CI URLs, immutable input hashes, and before/after structural checks. |
+| **0.2-1. Planner & Safety Guards** | Tier 1 | `sbm-plan`/`sbm-exec` unit & property tests verify: `sbm-common#2` partition GUID/attribute round-trip, available-space-only enforcement (refuses shrink in 0.0.2), `ProtectedAppleSystem` hard-block, MBR rejection, BitLocker recovery-key warning gate, `DiskIdentity` & `expected_partition_table_sha256` mismatch abort, and rollback on simulated fault. |
+| **0.2-2. Native UI Flow Preview** | Tier 1 | Track A native preview exercises **Install SBM**, dry-run diff review, confirmation, uninstall, and boot-repair screens in Iced `sbm-ui` with zero crashes. *(Does not satisfy Tier 2.)* |
+| **0.2-3. Internal SSD Install Alongside Existing OS** | Tier 2 | Boot SBM USB on a disposable multi-OS QCOW2 disk fixture (existing Windows-style ESP + Linux BLS ESP + >= 2 GiB unallocated GPT tail space); run **Install SBM** via `sbm-ui`/`sbm-cored`; verify `\EFI\Microsoft\` and existing Linux loaders are byte-identical, native `root-<arch>` + `root-<arch>-verity` partitions created with exact DPS GUIDs/PARTUUIDs, `\EFI\sbm\install-receipt.json` written, and `efibootmgr` entry registered first in `BootOrder`. |
+| **0.2-4. Reboot Into Internal SSD SBM & Chainload** | Tier 2 | Detach USB medium; reboot VM; verify firmware boots internal SSD `\EFI\sbm\sbm-<arch>.efi`, discovers existing OS fixture(s), chainloads existing OS cleanly, and boots internal **Manage Computer** (`sbm-core` `dm-verity` EROFS) -> Reboot -> confirmation. |
+| **0.2-5. Clean Uninstall** | Tier 2 | Run **Uninstall SBM** from internal or USB Core; verify prior `BootOrder` is restored, SBM NVRAM entry deleted, `\EFI\sbm\` removed, SBM-created recovery PARTUUIDs optionally removed, existing OS ESP/partitions untouched, and VM boots prior OS directly. |
+| **0.2-6. Boot Registration Recovery** | Tier 2 | Simulate Windows Update overwriting `BootOrder` to place Windows first; boot SBM USB -> run **Repair SBM Boot Registration**; verify zero partition changes and VM boots internal SSD SBM again on next reboot. |
+| **0.2-7. Negative & Fault Injection** | Tier 2 | Insufficient unallocated space -> clean refusal with zero writes; Apple APFS fixture -> hard-blocked; disk changed between plan & exec -> optimistic hash-lock abort; power-cut before `efibootmgr` -> existing OS still boots cleanly. |
+| **0.2-8. Physical Hardware (Opt-In Only)** | Tier 3 | *Optional for 0.0.2 beta; required before marking any physical device "Verified".* Explicitly human-authorized run on dedicated test machine (`EXP-HW-HP01`) with archived receipt. |
 
-## 4. Mandatory negative acceptance & evidence retention
+---
 
-1. **Tampered UKI:** Modify 1 byte of the native UKI on a disposable copy while preserving `manifest.json`; assert UEFI refuses launch at verification time before `StartImage` and returns cleanly to the usable picker (fail-closed; no `FromBuffer` fallback).
-2. **Broken dm-verity:** Corrupt the native verity hash partition or a boot-critical data block on a disposable copy; assert the verity-backed root never reaches desktop success.
-3. **Invalid handoff / stale confirmation:** Seed a mismatched `SbmHandoffSha256` (assert Core declines `boot-success.json` emission) and in a separate run seed a stale `attempt_id` or `"local"` report (assert UEFI refuses confirmation).
-4. **Decoy ESP priority:** Enumerate the decoy ESP before the boot ESP; assert both UEFI and Core bind strictly to the boot ESP and the decoy receives zero state changes.
-5. **Retention:** Archive machine-readable `result.json`, `serial.log`, `qemu.stderr`, QMP event/input trace, multi-stage QMP frames (never substituting an early splash frame, generated screenshot, or probe result), ESP state files, and SHA-256 digests for both passes and failures. Summarize qualified evidence in `research/validation/evidence/`.
+## 4. SBM 0.0.3 Gates — Cross-Platform Media Creator & Guided Partition Resizing
 
-## 5. Separate post-0.0.1 gates
+Qualified against **Spec 04 §11b**, **ADR-011**, and [`research/ecosystem/media-creator-evaluation.md`](../research/ecosystem/media-creator-evaluation.md).
 
-Enrolled-key Secure Boot (`SecureBoot=1`, `SetupMode=0` in disposable OVMF VARS, signed menu -> signed Core boot, rejection of untrusted UKI even with matching manifest digest without masking `SECURITY_VIOLATION`, and verification that external load options cannot override signed `.cmdline`) remains tracked separately in [sbm-lab#4](https://github.com/smart-boot-menu/sbm-lab/issues/4). Public trust claims require signed TUF/Sigstore metadata per Spec 07.
+| Gate | Tier | Mandatory Acceptance Criteria |
+|---|---|---|
+| **0.3-1. Media Creator Reuse Decision & Verification** | Tier 1/2 | Documented empirical evaluation of minimal `rpi-imager` Apache-2.0 branded build vs custom alternative completed; Media Creator fetches verified per-arch manifest, filters out internal system drives, verifies download/extract SHA-256, performs read-back verification, supports offline local `.raw`/`.raw.zst` files, and flashes a bootable image verified in Tier 2 QEMU. |
+| **0.3-2. Resize Planner & Allowlist Guards** | Tier 1 | Unit/property tests prove allowlist enforcement (`ext4`, clean non-hibernated `NTFS`, single-device `Btrfs`), SI/IEC safety-margin math, and hard refusal of BitLocker, LUKS, LVM/RAID/ZFS/XFS, dirty/hibernated NTFS, Apple APFS, and MBR disks. |
+| **0.3-3. Guided Resize + Internal Install (Populated OS Fixtures)** | Tier 2 | On disposable populated QCOW2 disks with **zero unallocated space** (one `ext4` Linux fixture, one clean `NTFS` fixture, one single-device `Btrfs` fixture): inspect -> shrink via Golden Rule sequence -> install SBM -> detach USB -> reboot into internal SSD SBM -> verify pre-existing sentinel files inside the shrunk filesystem pass `fsck`/SHA-256 verification and existing OS still boots. |
+| **0.3-4. Resize Negative Gates** | Tier 2 | BitLocker fixture, LUKS fixture, hibernated/dirty NTFS fixture, and XFS fixture are hard-blocked before any disk write with actionable remediation messages and byte-identical disk hashes before/after. |
+| **0.3-5. End-to-End Consumer Journey** | Tier 2 (+ opt-in Tier 3) | Full documented walkthrough verified end-to-end: `Media Creator -> flash image -> boot target -> Install SBM -> inspect & resize -> confirm -> install -> reboot into internal SSD SBM`. |
+
+---
+
+## 5. Separate Post-0.0.3 Gates (SBM 0.1 / 0.2)
+
+- **Enrolled-key Secure Boot (`sbm-lab#4`):** `SecureBoot=1`, `SetupMode=0` in disposable OVMF VARS, signed menu -> signed Core boot, untrusted UKI rejected without masking `SECURITY_VIOLATION`, external load options cannot override signed `.cmdline`.
+- **Signed Distribution Trust (Spec 07):** TUF + Sigstore/Cosign verification before public trust claims.
+- **OS Catalog, Remote Management & Apple Silicon Physical Boot:** Tracked in [ROADMAP.md](ROADMAP.md) under SBM 0.1 and SBM 0.2.
