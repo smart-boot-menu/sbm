@@ -125,25 +125,24 @@ check repo:
     cd "{{root}}/{{repo}}" && cargo clippy --all-targets -- -D warnings
     cd "{{root}}/{{repo}}" && cargo test --offline
 
-# Level 0 static host preview of sbm-uefi software renderer (MOCK, not qualification).
+# Level 0 headless screenshots of the real UEFI menu for simulated scenarios (SIMULATED).
 [group('1-level0-host')]
 preview-uefi *args:
-    cd "{{root}}/sbm-uefi" && cargo run -p xtask -- preview {{args}}
+    cd "{{root}}/sbm-uefi" && cargo run -q -p xtask -- preview {{args}}
 
-# Level 0 interactive native SBM preview (owned by Agent 18; delegates when present).
+# Examples: just preview --scenario multi-disk; just preview --theme light --display 1024x768
+# Level 0 interactive native SBM: UEFI menu window, Manage Computer opens real sbm-ui (SIMULATED).
 [group('1-level0-host')]
 preview *args:
     @if [ -n "${SBM_PREVIEW_CMD:-}" ]; then \
         exec ${SBM_PREVIEW_CMD} {{args}}; \
-    elif [ -d "{{root}}/sbm-preview" ]; then \
-        cd "{{root}}/sbm-preview" && cargo run -- {{args}}; \
-    elif grep -q '"preview"' "{{root}}/sbm-core/crates/sbm-ui/Cargo.toml" 2>/dev/null; then \
-        cd "{{root}}/sbm-core" && cargo run -p sbm-ui --features preview -- {{args}}; \
-    else \
-        echo "Interactive native preview (Agent 18) is not wired in this workspace yet."; \
-        echo "Set SBM_PREVIEW_CMD or use 'just preview-uefi' for the static sbm-gfx mock render."; \
-        exit 1; \
     fi
+    cd "{{root}}/sbm-uefi" && cargo run -q -p xtask -- sim {{args}}
+
+# Level 0 native SBM Core (real sbm-ui against the sbm-sim daemon) for one scenario (SIMULATED).
+[group('1-level0-host')]
+preview-core scenario="dual-boot":
+    cd "{{root}}/sbm-uefi" && cargo run -q -p xtask -- core --scenario "{{scenario}}"
 
 # ── Level 1: Minimal Native EFI Smoke Test ───────────────────────────────────
 
