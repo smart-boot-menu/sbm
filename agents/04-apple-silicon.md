@@ -6,7 +6,7 @@
 - **Canonical Dependencies & Specs to Read First:**
   - `~/gh/smart-boot-menu/.github/AGENTS.md` & `.github/agent-reference.md` (universal org rules & operational checklists; fetch from GitHub `smart-boot-menu/.github` if launched standalone)
   - `~/gh/smart-boot-menu/docs/architecture-decisions/ADR-010-open-source-reuse-and-engineering-principles.md` (open-source reuse & build-vs-reuse policy)
-  - `~/gh/smart-boot-menu/sbm-as/AGENTS.md` (repo-specific boundaries)
+  - `~/gh/smart-boot-menu/sbm-as/README.md` & `.github/agent-reference.md` (§5 `sbm-as` guardrails)
   - `~/gh/smart-boot-menu/sbm/ARCHITECTURE.md`, `TECHNOLOGY_STACK.md`, `ROADMAP.md`, `REPOSITORIES.md`
   - `sbm-common`, `sbm-uefi` (`aarch64-unknown-uefi`), `sbm-core` (`mkosi` profile), `docs/architecture-decisions/ADR-005`, `docs/hardware/target-hardware.md`, `research/hardware/apple-silicon-m1-to-m5.md`
 

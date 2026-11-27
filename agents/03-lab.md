@@ -6,7 +6,7 @@
 - **Canonical Dependencies & Specs to Read First:**
   - `~/gh/smart-boot-menu/.github/AGENTS.md` & `.github/agent-reference.md` (universal org rules & operational checklists; fetch from GitHub `smart-boot-menu/.github` if launched standalone)
   - `~/gh/smart-boot-menu/docs/architecture-decisions/ADR-010-open-source-reuse-and-engineering-principles.md` (open-source reuse & build-vs-reuse policy)
-  - `~/gh/smart-boot-menu/sbm-lab/AGENTS.md` (repo-specific boundaries)
+  - `~/gh/smart-boot-menu/sbm-lab/README.md` & `.github/agent-reference.md` (§5 `sbm-lab` guardrails)
   - `~/gh/smart-boot-menu/sbm/ARCHITECTURE.md`, `TECHNOLOGY_STACK.md`, `ROADMAP.md`, `REPOSITORIES.md`
   - `sbm-common`, `docs/architecture-decisions/ADR-008`, `docs/testing/benchmarks.md`, `research/architecture/virtualization-and-testing.md`
 
