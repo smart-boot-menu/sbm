@@ -1,6 +1,6 @@
 # Smart Boot Menu — Prioritized Development Roadmap
 
-**Last updated:** 2026-11-26  
+**Last updated:** 2026-11-27  
 **Canonical Decisions:** [ADR-009](../docs/architecture-decisions/ADR-009-dual-architecture-offline-preview-media.md), [ADR-010](../docs/architecture-decisions/ADR-010-open-source-reuse-and-engineering-principles.md), [ADR-011](../docs/architecture-decisions/ADR-011-native-preview-internal-install-and-media-creator.md), [ADR-012](../docs/architecture-decisions/ADR-012-profiles-network-recovery-modularity-and-ux.md)  
 **Testing Policy:** Strictly separates **Tier 1 (Simulated)**, **Tier 2 (Disposable VM Disk)**, and **Tier 3 (Explicitly Authorized Physical Hardware)** per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md).
 
@@ -42,8 +42,8 @@ Every milestone below builds toward these flows in risk-isolated increments, fol
 ## Initial Engineering Performance Targets (Aspirational — Subject to Measurement)
 
 Full target table and measured-vs-aspirational rules live in [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md):
-- UEFI initialization: **`< 250 ms`** | Minimal EFI application: **`< 1 MiB`**
-- Compressed base management OS (`sbm-core` base): **`< 500 MiB`**
+- UEFI initialization: **`< 250 ms`** *(measured in 0.0.1 Tier 2: `15.83 ms` median `aarch64` HVF, `38.63 ms` median `x86_64` KVM)* | Minimal EFI application: **`< 1 MiB`** *(measured in 0.0.1: `400.5 KiB` `aarch64`, `455.0 KiB` `x86_64`)*
+- Compressed base management OS (`sbm-core` base): **`< 500 MiB`** *(0.0.1 full offline image is `820.7 MiB` aarch64 / `854.7 MiB` x86_64; `< 500 MiB` base targeted in 0.0.3 via `systemd-sysext` split)*
 - Local recovery boot on modern hardware: **`< 10 s`** | Basic recovery: **`≤ 2 GiB RAM`** where practical
 - Native UI preview startup (Track A): **`< 1 s`** | Warm UI iteration (Track A): **`< 5 s`**
 - Zero mandatory internet, account, or cloud service | Zero unauthorized physical disk modifications
@@ -66,30 +66,27 @@ Full target table and measured-vs-aspirational rules live in [`docs/testing/benc
 ### Track A (Priority A) — Native Interactive SBM Development & Primary UX Studio (`Agent 18`)
 
 - **Goal:** Run the **actual** `sbm-uefi` renderer (`sbm-gfx` + `sbm-boot`) and the **actual** Iced `sbm-core` UI (`sbm-ui`) natively on macOS and Linux against simulated platform interfaces — serving as the **primary environment for evaluating and refining SBM's first-principles November 2026 UX** ([ADR-012](../docs/architecture-decisions/ADR-012-profiles-network-recovery-modularity-and-ux.md)).
-- **UX Philosophy:** Treat legacy boot managers and recovery discs as references, not visual constraints. Optimize for speed, clarity, accessibility, responsive layouts, useful diagnostics, minimal resource consumption, and progressive disclosure.
-- **Scope & Targets:**
-  - Interactive native host window over real `sbm-gfx`/`sbm-boot` (keyboard/mouse navigation, HiDPI scaling, themes, diagnostics/error views, simulated ESP & discovered OS cards, **Manage Computer** handoff).
-  - Pluggable `CoreBackend` trait in `sbm-ui` with a deterministic `SimulatedCoreBackend` (simulated disks, OSes, protected BitLocker/APFS partitions, recovery tools, and interactive **Install SBM** / resize / modular extension preview).
-  - Engineering targets: **`< 1 s`** preview startup, **`< 5 s`** warm UI iteration.
+- **Current Status:** Operational (`sbm-preview` + `sbm-sim`, `< 1 s` startup, `< 5 s` warm rebuild). Experimental hardware dashboards (`sbm-uefi@70a84c5..457c545`, behind `experimental-layouts`) are being iterated here without altering frozen SBM 0.0.1 (`sbm-uefi@4bfb3ba` Classic UI + Atkinson typography).
 - **Tier:** Strictly **Tier 1 (Simulated)** — visibly badged as simulated mode; never counts as firmware or block-device qualification.
 
 ### Track B (Priority B) — Efficient Open-Source Development Infrastructure (`Agent 16`)
 
 - **Goal:** Keep development fast, reproducible, and comfortable on a 16 GiB workstation by composing mature open-source tools instead of maintaining bespoke infrastructure (per `ADR-010` and `research/ecosystem/dev-infrastructure-and-testing-landscape-2026-11-26.md`).
-- **Completed Baseline:** Measured host resource audit, 13.24 GiB physical SSD reclaimed, single-arch dev defaults, root `justfile`, Cargo `build.build-dir` + `sccache` + `nextest` + `zigbuild` benchmarks, Lima+`krunkit` vs QEMU HVF evaluation, and `os-autoinst` CI assessment.
-- **Next Steps:** Continue shrinking custom `sbm-lab` code (`gpt.rs`/`fatimg.rs` -> `sbm-media`), adopt `mkosi --incremental=yes` + `Format=sysext` for Level 2 Core iteration, adopt U-Boot `sandbox` & `os-autoinst` on Linux CI, and reserve `labgrid` for future Tier 3 physical hardware labs.
+- **Completed Baseline:** Measured host resource audit, 13.24 GiB physical SSD reclaimed, single-arch dev defaults, root `justfile`, Cargo `build.build-dir` + `sccache` + `nextest` + `zigbuild` benchmarks, `sbm-lab` `gpt.rs`/`fatimg.rs` deduplication onto `sbm-media`, and `os-autoinst` Linux CI prototype.
+- **Next Steps:** Adopt `mkosi --incremental=yes` + `Format=sysext` for Level 2 Core iteration, enable `/dev/kvm` permissions in `sbm-lab/.github/workflows/ci.yml`, adopt U-Boot `sandbox` on Linux CI, and reserve `labgrid` for future Tier 3 physical hardware labs.
 
 ---
 
-## Milestone: SBM 0.0.1 (Priority C) — Independently Qualified Architecture-Specific Recovery Media
+## Milestone: SBM 0.0.1 (Priority C) — Independently Qualified Architecture-Specific Recovery Media (**TIER 2 QUALIFIED — READY FOR OWNER APPROVAL & PHYSICAL USB TEST**)
 
-**Goal:** Independently qualify reproducible, offline, **architecture-specific** bootable recovery media (`sbm-0.0.1-uefi-x86_64.raw[.zst]` and `sbm-0.0.1-uefi-aarch64.raw[.zst]`) through the complete real UEFI -> Core -> Iced UI -> GParted -> clean Reboot -> confirmation workflow.
+**Status (2026-11-27):** **BOTH `aarch64` and `x86_64` are Tier 2 Qualified (Development / Preview Trust Tier)** on frozen revisions (`sbm-common@abe3029`, `sbm-uefi@4bfb3ba`, `sbm-core@960f11a`, `install@870069d`, `sbm-lab@5ab4f8c`). All Gates 0–9 (including `N=10` `aarch64` HVF `15.83 ms` median and `N=10` `x86_64` native Linux KVM `38.63 ms` median), software-rendering fallback, and all 6 Tier 2 negative security/integrity checks pass with archived evidence. **Tier 3 physical hardware remains unverified** (pending opt-in HP laptop `EXP-HW-HP01` USB testing); no public release or git tag has been published yet.
 
+- **UI Scope:** Ships the frozen **Classic UI with Atkinson Hyperlegible Next/Mono typography** (`sbm-uefi@4bfb3ba`); newer experimental hardware dashboards (`sbm-uefi@70a84c5..457c545`) remain host-only preview experiments outside 0.0.1.
 - **Distribution Policy ([ADR-009](../docs/architecture-decisions/ADR-009-dual-architecture-offline-preview-media.md)):**
   - `x86_64` (OVMF) and `aarch64` (AAVMF) are qualified **independently**.
   - **Dual-architecture combined media (`sbm-0.0.1-uefi-dualarch.raw[.zst]`) is preserved strictly as an optional experimental build profile**, NOT a recommended distribution or mandatory release gate.
-- **Zero-Code Flashing Bridge:** Publish a schema-validated `sbm-os-list.json` compatible with **Raspberry Pi Imager (`>= 2.0.11`, `--repo`)** alongside documented instructions for USBImager, Fedora Media Writer, GNOME Impression, and Rufus.
-- **Verification:** Tier 1 unit/contract tests + Tier 2 disposable VM positive (Gates 0–9) and negative qualification per architecture. See [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md) and [RELEASE_GATES.md](RELEASE_GATES.md).
+- **Flashing & Release Prep:** Prepared in [`releases/0.0.1-RELEASE-NOTES.md`](releases/0.0.1-RELEASE-NOTES.md) and [`releases/0.0.1-HP-PHYSICAL-TEST-CHECKLIST.md`](releases/0.0.1-HP-PHYSICAL-TEST-CHECKLIST.md) using existing graphical flashers (**USBImager**, **Raspberry Pi Imager `>= 2.0.11`**, **Fedora Media Writer**, **GNOME Impression**, **Rufus**) — do NOT build `SBM Manager` prematurely. *(Optional `sbm-os-list.json` feed deferred cleanly to post-0.0.1 / 0.0.3.)*
+- **Verification:** See [INTEGRATION_AUDIT.md](INTEGRATION_AUDIT.md), [INTEGRATION_PLAN.md](INTEGRATION_PLAN.md), and [RELEASE_GATES.md](RELEASE_GATES.md).
 
 ---
 
