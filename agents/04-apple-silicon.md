@@ -4,7 +4,8 @@
 
 - **Assigned Repository:** `smart-boot-menu/sbm-as` (`~/gh/smart-boot-menu/sbm-as`)
 - **Canonical Dependencies & Specs to Read First:**
-  - `~/gh/smart-boot-menu/.github/AGENTS.md` (universal org rules)
+  - `~/gh/smart-boot-menu/.github/AGENTS.md` & `.github/agent-reference.md` (universal org rules & operational checklists; fetch from GitHub `smart-boot-menu/.github` if launched standalone)
+  - `~/gh/smart-boot-menu/docs/architecture-decisions/ADR-010-open-source-reuse-and-engineering-principles.md` (open-source reuse & build-vs-reuse policy)
   - `~/gh/smart-boot-menu/sbm-as/AGENTS.md` (repo-specific boundaries)
   - `~/gh/smart-boot-menu/sbm/ARCHITECTURE.md`, `TECHNOLOGY_STACK.md`, `ROADMAP.md`, `REPOSITORIES.md`
   - `sbm-common`, `sbm-uefi` (`aarch64-unknown-uefi`), `sbm-core` (`mkosi` profile), `docs/architecture-decisions/ADR-005`, `docs/hardware/target-hardware.md`, `research/hardware/apple-silicon-m1-to-m5.md`
@@ -26,9 +27,9 @@ Do NOT duplicate `sbm-uefi`; do NOT claim M5 bare-metal support until upstream A
 
 1. **Read Central Documentation:** Read the central files listed above and confirm protocol/schema types in `sbm-common`.
 2. **Inspect Relevant Codebases:** Inspect `sbm-common` crates and relevant upstream reference projects cited in `research/`.
-3. **Conduct Domain-Specific Research:** Verify any APIs, crate versions, or firmware/OS quirks specific to your domain; save reusable findings into `~/gh/smart-boot-menu/research/`.
-4. **Write an Implementation Plan:** Record a concise plan in `sbm-as/docs/IMPLEMENTATION_PLAN.md` before writing major code.
-5. **Implement Working Proof of Concept:** Write clean, idiomatic, `MIT OR Apache-2.0` Rust/config code targeting the **SBM 0.1** milestone.
+3. **Conduct Domain-Specific & Build-vs-Reuse Research:** Verify APIs, crate versions, firmware/OS quirks, and existing open-source solutions across languages and ecosystems (proportional to scope per `ADR-010` and `.github/agent-reference.md`); save reusable findings into `~/gh/smart-boot-menu/research/`.
+4. **Write an Implementation Plan:** Record a concise plan in `sbm-as/docs/IMPLEMENTATION_PLAN.md` before writing major code, including explicit build-versus-reuse justification (and empirical baselines where practical) for any new subsystem, major dependency, architectural change, or replacement of established software.
+5. **Implement Working Proof of Concept:** Prefer reusing, composing, or thinly integrating the strongest existing open-source solutions (or contributing upstream) per `ADR-010`; write clean, idiomatic, `MIT OR Apache-2.0` original code (Rust for original systems software where justified) targeting the **SBM 0.1** milestone.
 6. **Write Automated Tests:** Add unit tests, contract/schema tests, property/fuzz tests where applicable, and integration hooks for `sbm-lab`.
 7. **Benchmark Where Applicable:** Follow `docs/testing/benchmarks.md`; archive raw measured results in `research/validation/evidence/` (never invent metrics).
 8. **Document Limitations & Open Questions:** Clearly separate verified behavior from experimental/untested behavior in `sbm-as/README.md` and `sbm-as/docs/`.

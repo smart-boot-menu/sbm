@@ -2,9 +2,11 @@
 
 **Baseline:** November 2026 (Primary-source verified versions; see `research/` and `docs/architecture-decisions/` for full trade-off analyses.)
 
+> **Engineering Principle ([ADR-010](../docs/architecture-decisions/ADR-010-open-source-reuse-and-engineering-principles.md)):** Do not recreate inferior versions of existing software. Rust is our preferred language for *original systems software*, but language choice alone never justifies rewriting existing C, C++, Python, or other implementations. All baseline and future selections remain subject to proportional build-versus-reuse evaluation against the strongest open-source alternatives.
+
 | Layer | Concrete Recommendation | Verified Baseline (Nov 2026) | License | ADR |
 |---|---|---|---|---|
-| **Core Language** | **Rust** (Edition 2024) | `rustc 1.100.0` | `MIT OR Apache-2.0` | All |
+| **Preferred Original Systems Language** | **Rust** (Edition 2024) for justified original systems code — reuse/wrap existing non-Rust tools when superior | `rustc 1.100.0` | `MIT OR Apache-2.0` | [ADR-010](../docs/architecture-decisions/ADR-010-open-source-reuse-and-engineering-principles.md) |
 | **Shared Contracts (`sbm-common`)** | `sbm-types` (`#![no_std]`+`alloc`), `sbm-protocol` (`#![no_std]`+`alloc`), `sbm-schema` (`std` + `schemars`) | `serde`, `serde_json`, `schemars` | `MIT OR Apache-2.0` | Specs 01–07 |
 | **UEFI Runtime (`sbm-uefi`)** | `uefi-rs` (`uefi` + `uefi-raw`) | `uefi 0.41.0` / `uefi-raw 0.17.0` | `MPL-2.0` | [ADR-004](../docs/architecture-decisions/ADR-004-uefi-rust-stack-and-esp-persistence.md) |
 | **UEFI Graphics** | Custom `#![no_std]` double-buffered GOP 2D renderer + `ab_glyph`/bitmap fonts | Pure Rust `no_std` | `MIT OR Apache-2.0` | [ADR-002](../docs/architecture-decisions/ADR-002-graphics-and-gui-separation.md) |
