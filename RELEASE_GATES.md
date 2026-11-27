@@ -1,8 +1,8 @@
 # Smart Boot Menu — Release Gates (SBM 0.0.1, 0.0.2, 0.0.3 & 0.1)
 
-**Current Status (2026-11-26):**
-- **SBM 0.0.1 (`aarch64`):** **OPEN — UNQUALIFIED.** Core graphical recovery loop passed locally in Agent 13's unmerged runs (9/9 gates), but mandatory UEFI latency (`< 250 ms`), Spec 03 volatile EFI vars, per-arch manifest/reproducibility, and merged green CI gates remain open.
-- **SBM 0.0.1 (`x86_64`):** **OPEN — UNQUALIFIED.** Same remaining UEFI/manifest/merge gates plus native `x86_64` per-arch artifact assembly and CI verification.
+**Current Status (2026-11-27)**
+- **SBM 0.0.1 (`aarch64`) — OPEN / UNQUALIFIED.** The rebuilt offline recovery image passed all nine local graphical integration checks. Ten real-media HVF runs reached menu readiness in 15.7 ms median. Per-architecture reproducibility, remaining negative checks, and independent qualification remain open.
+- **SBM 0.0.1 (`x86_64`) — OPEN / UNQUALIFIED.** Native KVM firmware smoke and Secure Boot rejection passed with fixtures. Final real-media timing, graphical integration, reproducibility, and independent qualification remain open.
 - **Dual-architecture combined media (`dualarch`):** **OPTIONAL EXPERIMENTAL PROFILE** — preserved for specialized operator use; **NOT** a recommended distribution and **NOT** a mandatory release gate for 0.0.1 or later milestones (per [ADR-009](../docs/architecture-decisions/ADR-009-dual-architecture-offline-preview-media.md)).
 - **SBM 0.0.2, SBM 0.0.3 & SBM 0.1:** **PLANNED / OPEN.**
 
@@ -24,21 +24,23 @@ Per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md), [ADR-011](../
 
 `x86_64` (`sbm-0.0.1-uefi-x86_64.raw[.zst]`) and `aarch64` (`sbm-0.0.1-uefi-aarch64.raw[.zst]`) are qualified **independently**. Each architecture has its own gate pass/fail status and can be tagged/published independently once all mandatory gates pass for that architecture.
 
-### 2.1 Current SBM 0.0.1 Scorecard (2026-11-26)
+### 2.1 Current SBM 0.0.1 Scorecard (2026-11-27)
 
 | Gate | Tier | `aarch64` (AAVMF) | `x86_64` (OVMF) | Current Evidence & Blocking Gap |
 |---|---|---|---|---|
-| **0. Immutable per-arch reproducible build** | Tier 1/2 | **OPEN** | **OPEN** | Agent 13 proved reproducible *dual-arch* build locally (`5031613`, unmerged), but `install` still needs per-arch primary media profiles (`sbm-0.0.1-uefi-<arch>.raw[.zst]`), populated `ReleaseManifest.artifacts`, `release-manifest.v1.json`, and merged immutable revisions across `sbm-uefi`/`sbm-core`/`install`. |
-| **1. Real UEFI menu & startup latency** | Tier 2 | **FAIL** (1,083 ms HVF) | **FAIL** (16.0 s TCG) | `sbm-uefi` (`653012f`) still hashes UKI at discovery time. Must implement lightweight startup check + launch-time single-open streaming SHA-256 (`sha2` `opt-level = 3`) so `menu_ready < 250 ms` on `aarch64` HVF (and native KVM on `x86_64` CI). |
-| **2. Discovered targets** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13's local `sbm-lab` integration run showed both decoy OS fixture and recovery entry; needs merged `sbm-lab#2` + **Manage Computer** label per Spec 03. |
-| **3. Manage Computer & Spec 03 handoff** | Tier 2 | **PARTIAL** | **PARTIAL** | `sbm-uefi` still passes legacy cmdline load options instead of publishing all 5 Spec 03 volatile EFI variables with empty load options, UUIDv4 `attempt_id`, and fail-closed launch-time streaming SHA-256. |
-| **4. Real Linux Core (`dm-verity` EROFS)** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 (`sbm-core` `5031613`, unmerged) fixed `/efi`, `resolve_disk()`, ESP protection, and strict BLI/EFI-var handoff. Needs merge with Agent 16's `098921f` and clean CI build. |
-| **5. Management UI (`sbm-ui`)** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 fixed `systemd-pam`, `/run/sbm`, `sbm-ui` `tiny-skia` fallback, and `SBM_UI_READY` + `boot-success.json` (`aarch64` HVF, `x86_64` TCG, `ramfb` software). Needs merge & re-run on final per-arch media. |
-| **6. GParted & virtual disks** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 fixed XWayland `xhost` refresh and captured QMP frames showing 1 GiB + 2 GiB fixture disks in GParted. Needs merge & re-run on final per-arch media. |
-| **7. Return to menu & confirmation** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Agent 13 verified clean QMP `RESET`, menu reboot, `status=confirmed`, `consecutive_failures=0`, `boot-success.json` consumed. Needs `sbm-uefi#1` strict `attempt_id` check (no `"local"` wildcard) and merge. |
-| **8. Offline operation** | Tier 2 | **LOCAL PASS** *(unmerged)* | **LOCAL PASS** *(unmerged)* | Zero NIC attached across full loop; re-verify on final merged per-arch images. |
-| **9. CI, integrity & host resource hygiene** | Tier 1/2 | **OPEN** | **OPEN** | `sbm-lab#5` shared resource manager fixes, `sbm-core` merge (`5031613` + `098921f`), `sbm-lab` `integration.rs` push, and green hosted CI across `sbm-common`, `docs`, `sbm-uefi`, `sbm-core`, `sbm-lab`, and `install` still pending. |
+| **0. Immutable per-arch reproducible build** | Tier 1/2 | **OPEN** | **OPEN** | ARM64 clean build and verified single-architecture assembly passed. Repeat-build byte identity and final media outputs remain open. |
+| **1. Real UEFI menu & startup latency** | Tier 2 | **LOCAL PASS** | **FIXTURE PASS** | ARM64 real media reached menu-ready in 15.7 ms median and 17.027 ms maximum across ten HVF runs. x86-64 real-media KVM timing remains open. |
+| **2. Discovered targets** | Tier 2 | **LOCAL PASS** | **FIXTURE PASS** | The ARM64 graphical picker showed the decoy OS and recovery Slot A. Current target IDs flow from UEFI discovery to Core. |
+| **3. Manage Computer & Spec 03 handoff** | Tier 2 | **LOCAL PASS** | **FIXTURE PASS** | Both firmware fixtures checked all five volatile variables, the exact boot ESP UUID, UUIDv4 attempt, flushed files, and empty external recovery load options. The 74,513,752-byte ARM64 UKI passed full launch-time verification. |
+| **4. Real Linux Core (`dm-verity` EROFS)** | Tier 2 | **LOCAL PASS** | **OPEN** | Rebuilt ARM64 Core verified the integrated handoff on the actual backing disk, with the decoy ESP first. |
+| **5. Management UI (`sbm-ui`)** | Tier 2 | **LOCAL PASS** | **OPEN** | Rebuilt ARM64 Core showed the daemon-backed UI and wrote the boot-success report after the live snapshot. |
+| **6. GParted & virtual disks** | Tier 2 | **LOCAL PASS** | **OPEN** | ARM64 GParted opened and showed both fixture disks in its device selector. |
+| **7. Return to menu & confirmation** | Tier 2 | **LOCAL PASS** | **OPEN** | The ARM64 graphical reboot returned to the picker, confirmed the matching attempt, reset its failure count, and consumed the success report. |
+| **8. Offline operation** | Tier 2 | **LOCAL PASS** | **OPEN** | The rebuilt ARM64 image completed the full loop in a guest with no attached NICs. |
+| **9. CI, integrity & host resource hygiene** | Tier 1/2 | **LOCAL PASS** | **FIXTURE PASS** | Hosted CI passed for the coordinated source revisions. ARM64 base images and the decoy ESP remained unchanged. Native x86-64 OVMF refused the unsigned recovery fixture under enrolled Secure Boot. |
 | **Exp. Dual-arch combined media** *(Optional / Non-Gating)* | Tier 2 | *Optional* | *Optional* | Preserved as an optional experimental profile in `install`; passing or skipping this profile does NOT block 0.0.1 qualification of `x86_64` or `aarch64`. |
+
+[Agent 15 evidence and machine-readable measurements](https://github.com/smart-boot-menu/research/blob/main/validation/evidence/sbm-uefi-agent15-2026-11-27.md)
 
 ### 2.2 Mandatory Positive Acceptance Per Architecture (Gates 0–9)
 
@@ -54,6 +56,8 @@ Per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md), [ADR-011](../
 10. **Gate 9 — CI & Integrity:** All hosted CI jobs pass across all participating repos; original `.raw` image bytes, firmware templates, fixture bases, and GPT metadata remain byte-identical before and after runs.
 
 ### 2.3 Mandatory Negative Acceptance Per Architecture (Tier 2)
+
+Agent 15 observed ARM64 recovery refusal on a real-media copy after a one-byte UKI change and verified zero mutations on the decoy ESP. Native tests cover invalid handoffs and stale confirmations. The remaining negative cases still require independent disposable-VM qualification on the final per-architecture media.
 
 1. **Tampered UKI:** 1-byte flip in native UKI -> UEFI refuses launch fail-closed before `StartImage` and returns to usable picker.
 2. **Corrupted `dm-verity`:** Corrupted verity hash/data block -> Linux never reaches `SBM_UI_READY` or writes `boot-success.json`.
