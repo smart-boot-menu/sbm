@@ -12,7 +12,6 @@
 
 ## 1. Three Mandatory Testing Tiers (Applies to All Releases)
 
-- **Distribution classification (ADR-009 amendment, pending Agent 11 review):** Architecture-specific distributions (`x86_64` and generic `aarch64`) are **recommended** for users and CI; the universal dual-architecture image (`sbm-0.0.1-uefi-dualarch.raw[.zst]`) is preserved as **experimental and optional**; Apple Silicon (`sbm-as`) is a separate experimental track; local development builds MUST default to native architecture only.
 Per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md) and [ADR-011](../docs/architecture-decisions/ADR-011-native-preview-internal-install-and-media-creator.md), every release gate explicitly states its testing tier:
 
 - **Tier 1 (Simulated / Native Host):** Unit tests, property tests, regular-file `sbm-plan`/`sbm-exec` simulations, and Track A native interactive previews (`sbm-gfx`/`sbm-boot` + Iced `sbm-ui`). Fast PR/dev feedback; never touches block devices or counts as firmware/kernel qualification.
