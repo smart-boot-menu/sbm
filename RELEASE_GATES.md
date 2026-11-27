@@ -1,21 +1,21 @@
-# Smart Boot Menu — Release Gates (SBM 0.0.1, 0.0.2 & 0.0.3)
+# Smart Boot Menu — Release Gates (SBM 0.0.1, 0.0.2, 0.0.3 & 0.1)
 
 **Current Status (2026-11-26):**
 - **SBM 0.0.1 (`aarch64`):** **OPEN — UNQUALIFIED.** Core graphical recovery loop passed locally in Agent 13's unmerged runs (9/9 gates), but mandatory UEFI latency (`< 250 ms`), Spec 03 volatile EFI vars, per-arch manifest/reproducibility, and merged green CI gates remain open.
 - **SBM 0.0.1 (`x86_64`):** **OPEN — UNQUALIFIED.** Same remaining UEFI/manifest/merge gates plus native `x86_64` per-arch artifact assembly and CI verification.
 - **Dual-architecture combined media (`dualarch`):** **OPTIONAL EXPERIMENTAL PROFILE** — preserved for specialized operator use; **NOT** a recommended distribution and **NOT** a mandatory release gate for 0.0.1 or later milestones (per [ADR-009](../docs/architecture-decisions/ADR-009-dual-architecture-offline-preview-media.md)).
-- **SBM 0.0.2 & SBM 0.0.3:** **PLANNED / OPEN.**
+- **SBM 0.0.2, SBM 0.0.3 & SBM 0.1:** **PLANNED / OPEN.**
 
-> **Honest Qualification Rule:** Do NOT declare any release or architecture qualified until every mandatory Tier 1 and Tier 2 gate below passes from **merged, immutable committed source revisions** with archived machine-readable evidence and green hosted CI. **Tier 1 simulated previews (Track A) NEVER substitute for Tier 2 disposable VM qualification.**
+> **Honest Qualification Rule:** Do NOT declare any release or architecture qualified until every mandatory Tier 1 and Tier 2 gate below passes from **merged, immutable committed source revisions** with archived machine-readable evidence and green hosted CI. **Tier 1 simulated previews (Track A) NEVER substitute for Tier 2 disposable VM qualification**, and **aspirational engineering targets MUST always be distinguished from measured results**.
 
 ---
 
 ## 1. Three Mandatory Testing Tiers (Applies to All Releases)
 
-Per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md) and [ADR-011](../docs/architecture-decisions/ADR-011-native-preview-internal-install-and-media-creator.md), every release gate explicitly states its testing tier:
+Per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md), [ADR-011](../docs/architecture-decisions/ADR-011-native-preview-internal-install-and-media-creator.md), and [ADR-012](../docs/architecture-decisions/ADR-012-profiles-network-recovery-modularity-and-ux.md), every release gate explicitly states its testing tier:
 
-- **Tier 1 (Simulated / Native Host):** Unit tests, property tests, regular-file `sbm-plan`/`sbm-exec` simulations, and Track A native interactive previews (`sbm-gfx`/`sbm-boot` + Iced `sbm-ui`). Fast PR/dev feedback; never touches block devices or counts as firmware/kernel qualification.
-- **Tier 2 (Disposable VM Disk — `sbm-lab` / Linux CI):** Real UEFI firmware (OVMF/AAVMF), real Linux kernel + CLI storage tools, and disposable copy-on-write QCOW2 disk/NVRAM overlays. **Mandatory automated qualification authority for 0.0.1, 0.0.2, and 0.0.3.**
+- **Tier 1 (Simulated / Native Host):** Unit tests, property tests, regular-file `sbm-plan`/`sbm-exec` simulations, and Track A native interactive previews (`sbm-gfx`/`sbm-boot` + Iced `sbm-ui`, primary UX studio). Fast PR/dev feedback; never touches block devices or counts as firmware/kernel qualification.
+- **Tier 2 (Disposable VM Disk — `sbm-lab` / Linux CI):** Real UEFI firmware (OVMF/AAVMF), real Linux kernel + CLI storage tools, and disposable copy-on-write QCOW2 disk/NVRAM overlays. **Mandatory automated qualification authority for 0.0.1, 0.0.2, 0.0.3, and 0.1.**
 - **Tier 3 (Explicitly Authorized Physical Hardware):** Strictly opt-in manual validation on dedicated non-workstation hardware (e.g., `EXP-HW-HP01`). Never automated on developer workstations; required only before marking a physical device *Verified* on the public compatibility matrix.
 
 ---
@@ -62,39 +62,52 @@ Per [`docs/testing/benchmarks.md`](../docs/testing/benchmarks.md) and [ADR-011](
 
 ---
 
-## 3. SBM 0.0.2 Gates — Persistent Internal SSD Installation, Uninstall & Recovery
+## 3. SBM 0.0.2 Gates — Persistent Internal SSD Installation, `efi-only` Profile, Uninstall & Recovery
 
-Qualified per architecture (`x86_64`, `aarch64`) against **Spec 04 §11a** and **ADR-011**.
+Qualified per architecture (`x86_64`, `aarch64`) against **Spec 03 §9a**, **Spec 04 §11a**, **ADR-011**, and **ADR-012**.
 
 | Gate | Tier | Mandatory Acceptance Criteria |
 |---|---|---|
 | **0.2-1. Planner & Safety Guards** | Tier 1 | `sbm-plan`/`sbm-exec` unit & property tests verify: `sbm-common#2` partition GUID/attribute round-trip, available-space-only enforcement (refuses shrink in 0.0.2), `ProtectedAppleSystem` hard-block, MBR rejection, BitLocker recovery-key warning gate, `DiskIdentity` & `expected_partition_table_sha256` mismatch abort, and rollback on simulated fault. |
-| **0.2-2. Native UI Flow Preview** | Tier 1 | Track A native preview exercises **Install SBM**, dry-run diff review, confirmation, uninstall, and boot-repair screens in Iced `sbm-ui` with zero crashes. *(Does not satisfy Tier 2.)* |
-| **0.2-3. Internal SSD Install Alongside Existing OS** | Tier 2 | Boot SBM USB on a disposable multi-OS QCOW2 disk fixture (existing Windows-style ESP + Linux BLS ESP + >= 2 GiB unallocated GPT tail space); run **Install SBM** via `sbm-ui`/`sbm-cored`; verify `\EFI\Microsoft\` and existing Linux loaders are byte-identical, native `root-<arch>` + `root-<arch>-verity` partitions created with exact DPS GUIDs/PARTUUIDs, `\EFI\sbm\install-receipt.json` written, and `efibootmgr` entry registered first in `BootOrder`. |
-| **0.2-4. Reboot Into Internal SSD SBM & Chainload** | Tier 2 | Detach USB medium; reboot VM; verify firmware boots internal SSD `\EFI\sbm\sbm-<arch>.efi`, discovers existing OS fixture(s), chainloads existing OS cleanly, and boots internal **Manage Computer** (`sbm-core` `dm-verity` EROFS) -> Reboot -> confirmation. |
-| **0.2-5. Clean Uninstall** | Tier 2 | Run **Uninstall SBM** from internal or USB Core; verify prior `BootOrder` is restored, SBM NVRAM entry deleted, `\EFI\sbm\` removed, SBM-created recovery PARTUUIDs optionally removed, existing OS ESP/partitions untouched, and VM boots prior OS directly. |
-| **0.2-6. Boot Registration Recovery** | Tier 2 | Simulate Windows Update overwriting `BootOrder` to place Windows first; boot SBM USB -> run **Repair SBM Boot Registration**; verify zero partition changes and VM boots internal SSD SBM again on next reboot. |
-| **0.2-7. Negative & Fault Injection** | Tier 2 | Insufficient unallocated space -> clean refusal with zero writes; Apple APFS fixture -> hard-blocked; disk changed between plan & exec -> optimistic hash-lock abort; power-cut before `efibootmgr` -> existing OS still boots cleanly. |
-| **0.2-8. Physical Hardware (Opt-In Only)** | Tier 3 | *Optional for 0.0.2 beta; required before marking any physical device "Verified".* Explicitly human-authorized run on dedicated test machine (`EXP-HW-HP01`) with archived receipt. |
+| **0.2-2. Native UI Flow Preview** | Tier 1 | Track A native preview exercises **Install SBM** (`efi-only` and `offline-full`), dry-run diff review, confirmation, uninstall, and boot-repair screens in Iced `sbm-ui` with zero crashes. *(Does not satisfy Tier 2.)* |
+| **0.2-3. Minimal `efi-only` Install & Upgradeability** | Tier 2 | Stripped `sbm-uefi` binary size measured against the **`< 1 MiB`** target; `efi-only` installs cleanly on existing ESP with zero extra partitions, boots & chainloads existing OS fixtures, and upgrades cleanly to `offline-full` (adding Core slots + manifest) **without reinstalling `sbm-uefi` or altering unrelated OS boot entries**. |
+| **0.2-4. Internal SSD `offline-full` Install Alongside Existing OS** | Tier 2 | Boot SBM USB on a disposable multi-OS QCOW2 disk fixture (existing Windows-style ESP + Linux BLS ESP + >= 2 GiB unallocated GPT tail space); run **Install SBM** via `sbm-ui`/`sbm-cored`; verify `\EFI\Microsoft\` and existing Linux loaders are byte-identical, native `root-<arch>` + `root-<arch>-verity` partitions created with exact DPS GUIDs/PARTUUIDs, `\EFI\sbm\install-receipt.json` written, and `efibootmgr` entry registered first in `BootOrder`. |
+| **0.2-5. Reboot Into Internal SSD SBM & Chainload** | Tier 2 | Detach USB medium; reboot VM; verify firmware boots internal SSD `\EFI\sbm\sbm-<arch>.efi`, discovers existing OS fixture(s), chainloads existing OS cleanly, and boots internal **Manage Computer** (`sbm-core` `dm-verity` EROFS) -> Reboot -> confirmation. |
+| **0.2-6. Clean Uninstall** | Tier 2 | Run **Uninstall SBM** from internal or USB Core; verify prior `BootOrder` is restored, SBM NVRAM entry deleted, `\EFI\sbm\` removed, SBM-created recovery PARTUUIDs optionally removed, existing OS ESP/partitions untouched, and VM boots prior OS directly. |
+| **0.2-7. Boot Registration Recovery** | Tier 2 | Simulate Windows Update overwriting `BootOrder` to place Windows first; boot SBM USB -> run **Repair SBM Boot Registration**; verify zero partition changes and VM boots internal SSD SBM again on next reboot. |
+| **0.2-8. Negative & Fault Injection** | Tier 2 | Insufficient unallocated space -> clean refusal with zero writes; Apple APFS fixture -> hard-blocked; disk changed between plan & exec -> optimistic hash-lock abort; power-cut before `efibootmgr` -> existing OS still boots cleanly. |
+| **0.2-9. Physical Hardware (Opt-In Only)** | Tier 3 | *Optional for 0.0.2 beta; required before marking any physical device "Verified".* Explicitly human-authorized run on dedicated test machine (`EXP-HW-HP01`) with archived receipt. |
 
 ---
 
-## 4. SBM 0.0.3 Gates — Cross-Platform Media Creator & Guided Partition Resizing
+## 4. SBM 0.0.3 Gates — Cross-Platform `SBM Manager` MVP, Guided Partition Resizing & Initial `systemd-sysext` Modularity
 
-Qualified against **Spec 04 §11b**, **ADR-011**, and [`research/ecosystem/media-creator-evaluation.md`](../research/ecosystem/media-creator-evaluation.md).
+Qualified against **Spec 04 §11b**, **Spec 07 §17a**, **ADR-011**, **ADR-012**, and [`research/ecosystem/media-creator-evaluation.md`](../research/ecosystem/media-creator-evaluation.md).
 
 | Gate | Tier | Mandatory Acceptance Criteria |
 |---|---|---|
-| **0.3-1. Media Creator Reuse Decision & Verification** | Tier 1/2 | Documented empirical evaluation of minimal `rpi-imager` Apache-2.0 branded build vs custom alternative completed; Media Creator fetches verified per-arch manifest, filters out internal system drives, verifies download/extract SHA-256, performs read-back verification, supports offline local `.raw`/`.raw.zst` files, and flashes a bootable image verified in Tier 2 QEMU. |
+| **0.3-1. `SBM Manager` Architecture Decision & Verification** | Tier 1/2 | Documented empirical evaluation comparing a minimal Apache-2.0 `rpi-imager` fork vs. a thin Rust/Iced `SBM Manager` reusing OS flashing backends completed; `SBM Manager` configures profile/cache/modules, fetches verified per-arch manifest, filters out internal system drives, verifies download/extract SHA-256, performs read-back verification, supports offline local `.raw`/`.raw.zst` files, and flashes a bootable image verified in Tier 2 QEMU. |
 | **0.3-2. Resize Planner & Allowlist Guards** | Tier 1 | Unit/property tests prove allowlist enforcement (`ext4`, clean non-hibernated `NTFS`, single-device `Btrfs`), SI/IEC safety-margin math, and hard refusal of BitLocker, LUKS, LVM/RAID/ZFS/XFS, dirty/hibernated NTFS, Apple APFS, and MBR disks. |
 | **0.3-3. Guided Resize + Internal Install (Populated OS Fixtures)** | Tier 2 | On disposable populated QCOW2 disks with **zero unallocated space** (one `ext4` Linux fixture, one clean `NTFS` fixture, one single-device `Btrfs` fixture): inspect -> shrink via Golden Rule sequence -> install SBM -> detach USB -> reboot into internal SSD SBM -> verify pre-existing sentinel files inside the shrunk filesystem pass `fsck`/SHA-256 verification and existing OS still boots. |
 | **0.3-4. Resize Negative Gates** | Tier 2 | BitLocker fixture, LUKS fixture, hibernated/dirty NTFS fixture, and XFS fixture are hard-blocked before any disk write with actionable remediation messages and byte-identical disk hashes before/after. |
-| **0.3-5. End-to-End Consumer Journey** | Tier 2 (+ opt-in Tier 3) | Full documented walkthrough verified end-to-end: `Media Creator -> flash image -> boot target -> Install SBM -> inspect & resize -> confirm -> install -> reboot into internal SSD SBM`. |
+| **0.3-5. Initial Signed `systemd-sysext` Modularity & Base Size** | Tier 1/2 | Compressed `sbm-core` base image measured against **`< 500 MiB`** target; signed `dm-verity` `.sysext.raw` module activates cleanly over immutable root (`--image-policy='root=signed+absent:usr=signed+absent:=unused+absent'`) and unsigned/tampered `.sysext.raw` is rejected fail-closed. |
+| **0.3-6. End-to-End Consumer Journey** | Tier 2 (+ opt-in Tier 3) | Full documented walkthrough verified end-to-end: `SBM Manager -> configure profile & flash USB -> boot target -> Install SBM -> inspect & resize -> confirm -> install -> reboot into internal SSD SBM`. |
 
 ---
 
-## 5. Separate Post-0.0.3 Gates (SBM 0.1 / 0.2)
+## 5. SBM 0.1 Gates — Network Recovery, Ephemeral Remote Repair, Full Modularity & OS Catalog ([`sbm#5`](https://github.com/smart-boot-menu/sbm/issues/5))
+
+| Gate | Tier | Mandatory Acceptance Criteria |
+|---|---|---|
+| **0.1-1. Standards-Based Network Bootstrap & HTTP `Range` Resume** | Tier 2 | Recovery USB boots signed minimal Linux Network-Bootstrap UKI -> downloads & authenticates `sbm-core` from local HTTPS test server (surviving simulated mid-transfer disconnect via HTTP `Range` resume) -> `switch-root` into verified `dm-verity` EROFS root; unavailable-network path degrades cleanly with offline fallback. |
+| **0.1-2. Strict `ram-only` Zero-SSD-Touch & Low-RAM Guard** | Tier 2 | In `ram-only` mode, target internal SSD raw disk SHA-256 is **byte-identical before and after** full network boot + recovery session (zero temp/cache/log/swap writes); under insufficient simulated RAM (`≤ 2 GiB`), bootstrapper refuses cleanly with actionable options rather than touching internal disks. |
+| **0.1-3. Ephemeral Revocable Remote Recovery Session** | Tier 1/2 | Recovery USB contains zero permanent shared credentials and zero unattended command hooks; valid non-expired `EphemeralRecoveryGrant` establishes authenticated encrypted remote session, displays local active-session banner, and immediately terminates + wipes ephemeral RAM keys on one-action local revoke, expiry, or reboot. |
+| **0.1-4. Full `systemd-sysext`/`confext` Lifecycle** | Tier 1/2 | Signed `ModuleDescriptor` acyclic dependency & `SYSEXT_LEVEL`/arch validation; users download, cache (RAM or authorized storage only), activate, deactivate, and remove optional modules cleanly without mutating the immutable base. |
+
+---
+
+## 6. SBM 0.2 Gates — Apple Silicon, Enrolled-Key Secure Boot & Public Portal
 
 - **Enrolled-key Secure Boot (`sbm-lab#4`):** `SecureBoot=1`, `SetupMode=0` in disposable OVMF VARS, signed menu -> signed Core boot, untrusted UKI rejected without masking `SECURITY_VIOLATION`, external load options cannot override signed `.cmdline`.
 - **Signed Distribution Trust (Spec 07):** TUF + Sigstore/Cosign verification before public trust claims.
-- **OS Catalog, Remote Management & Apple Silicon Physical Boot:** Tracked in [ROADMAP.md](ROADMAP.md) under SBM 0.1 and SBM 0.2.
+- **Apple Silicon Physical Boot (`sbm-as`) & Public Portal (`smart-boot-menu.github.io`):** Tracked in [ROADMAP.md](ROADMAP.md) under SBM 0.2.

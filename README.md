@@ -1,10 +1,10 @@
 # Smart Boot Menu (`sbm`)
 
-**Open-source, network-native, operating-system-independent bare-metal lifecycle management.**
+**Open-source, network-native, modular, operating-system-independent bare-metal lifecycle management.**
 
-Install Smart Boot Menu once and manage the entire lifecycle of your computer: ultra-fast graphical UEFI boot selection, automatic OS discovery, persistent internal SSD installation alongside existing operating systems, online & offline OS installation, multiboot management, disk partitioning (GParted), backup/cloning, hardware diagnostics, system recovery, and optional self-hosted remote desktop & remote boot control.
+Install Smart Boot Menu once—from a `< 1 MiB` minimal EFI boot manager up to a full offline, modular, or on-demand network-loaded recovery environment—and manage the entire lifecycle of your computer: ultra-fast graphical UEFI boot selection, automatic OS discovery, persistent internal SSD installation alongside existing operating systems, on-demand network recovery & revocable remote repair of broken OSes, online & offline OS installation, disk partitioning (GParted), backup/cloning, hardware diagnostics, and optional self-hosted fleet management. Provision and configure recovery media with **`SBM Manager`**.
 
-> **100% Offline-First:** Smart Boot Menu requires **no internet connection, no account, no cloud server, and no mandatory telemetry**. Self-hosted remote management (`sbm-server`) is completely optional.
+> **100% Offline-First:** Smart Boot Menu requires **no internet connection, no account, no cloud server, and no mandatory telemetry**. Network recovery and remote management (`sbm-server` / ephemeral recovery sessions) are strictly opt-in, authenticated, encrypted, and revocable.
 
 ## Repository Role
 
@@ -12,17 +12,17 @@ Install Smart Boot Menu once and manage the entire lifecycle of your computer: u
 
 To keep documentation clean and prevent copy-paste drift (modeled after `0SFS`'s dedicated knowledge repositories):
 - **Central agent rules & guardrails** live canonically in [`smart-boot-menu/.github`](https://github.com/smart-boot-menu/.github) (`../.github/` locally).
-- **Normative specifications, ADRs (001–011), threat models, hardware profiles, 3-tier testing methodology, and Mermaid diagrams** live canonically in [`smart-boot-menu/docs`](https://github.com/smart-boot-menu/docs) (`../docs/` locally).
+- **Normative specifications, ADRs (001–012), threat models, hardware profiles, 3-tier testing methodology, and Mermaid diagrams** live canonically in [`smart-boot-menu/docs`](https://github.com/smart-boot-menu/docs) (`../docs/` locally).
 - **Primary-source ecosystem research, build-vs-reuse evaluations, Apple Silicon studies, and retained benchmark evidence** live canonically in [`smart-boot-menu/research`](https://github.com/smart-boot-menu/research) (`../research/` locally).
 - **Shared Rust libraries (`no_std` + `std`), JSON Schemas, and protocol test vectors** live canonically in [`smart-boot-menu/sbm-common`](https://github.com/smart-boot-menu/sbm-common) (`../sbm-common/` locally).
 
 ## Executive Documents
 
 - [VISION.md](VISION.md) — Long-term vision, design philosophy, and offline-first principles.
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Two-tier architecture (`sbm-uefi` + `sbm-core`), Track A native previews, per-arch media, internal SSD installation, and 3-tier testing.
-- [TECHNOLOGY_STACK.md](TECHNOLOGY_STACK.md) — Concrete recommended technology stack (November 2026 baseline, aligned with ADR-010 & ADR-011).
+- [ARCHITECTURE.md](ARCHITECTURE.md) — Two-tier architecture (`sbm-uefi` + `sbm-core`), 6 configurable profiles, standards-based network recovery, 0SFS-style `systemd-sysext` modularity, `SBM Manager`, Track A native UX simulator, and 3-tier testing.
+- [TECHNOLOGY_STACK.md](TECHNOLOGY_STACK.md) — Concrete recommended technology stack (November 2026 baseline, aligned with ADR-010, ADR-011 & ADR-012).
 - [REPOSITORIES.md](REPOSITORIES.md) — Complete 14-repository ownership matrix and strict boundaries.
-- [REQUIREMENTS.md](REQUIREMENTS.md) — Functional, security, offline, and measurable initial engineering targets.
+- [REQUIREMENTS.md](REQUIREMENTS.md) — Functional, security, offline, modularity, and initial engineering targets (strictly distinguished from measured capabilities).
 - [ROADMAP.md](ROADMAP.md) — Prioritized delivery roadmap (Tracks A–B, SBM 0.0.1, 0.0.2, 0.0.3, 0.1, and 0.2).
 - [SECURITY.md](SECURITY.md) — Security invariants, disclosure process, and threat model index.
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution workflow and cross-repository interface change process.
@@ -30,11 +30,11 @@ To keep documentation clean and prevent copy-paste drift (modeled after `0SFS`'s
 - [agents/README.md](agents/README.md) — Autonomous engineering agent prompts and active coordination roster.
 - [HANDOFF.md](HANDOFF.md) — Agent 0 initialization and handoff report.
 
-## Release Coordination & Gates (SBM 0.0.1–0.0.3)
+## Release Coordination & Gates (SBM 0.0.1–0.1)
 
 - [Integration audit](INTEGRATION_AUDIT.md) — Wave 2 cross-repo audit findings.
-- [Integration plan, dependency matrix, and owner assignments](INTEGRATION_PLAN.md) — Coordinates Tracks A & B (Agents 18 & 16) and SBM 0.0.1–0.0.3.
-- [Release gates](RELEASE_GATES.md) — Independent per-arch 0.0.1 gates (dual-arch optional experimental) plus Tier 1/2/3 gates for 0.0.2 and 0.0.3.
+- [Integration plan, dependency matrix, and owner assignments](INTEGRATION_PLAN.md) — Coordinates Tracks A & B (Agents 18 & 16) and SBM 0.0.1–0.1.
+- [Release gates](RELEASE_GATES.md) — Independent per-arch 0.0.1 gates (dual-arch optional experimental) plus Tier 1/2/3 gates for 0.0.2, 0.0.3, and 0.1.
 - [Integration handoff](INTEGRATION_HANDOFF.md) — Latest Chief Integration Architect coordination handoff.
 
 ## License
